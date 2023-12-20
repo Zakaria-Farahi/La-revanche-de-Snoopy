@@ -79,7 +79,7 @@ int main(int argc, char const *argv[]) {
     	SDL_WaitEvent(&event);
 	    if (event.type == SDL_QUIT) {
 	        break;
-	    } else if (event.type == SDL_KEYDOWN) {
+	    } else if (event.type == SDL_KEYDOWN && running) {
 	        if (event.key.keysym.sym == SDLK_SPACE) {
             break;
 	        }
