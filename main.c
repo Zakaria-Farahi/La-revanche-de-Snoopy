@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <stdbool.h>
 #include <pthread.h>
+#include <math.h>
 
 typedef struct {
 	int x;
@@ -258,33 +259,48 @@ void youLose(int lvl, SDL_Surface *fenetre){
 void* BallMove(void* data) {
     struct ThreadBall* balll = (struct ThreadBall*)data;
     SDL_Surface* ballon;
-    ballon =  IMG_Load("./img/ball.png");
+    ballon = IMG_Load("./img/ball.png");
 
     if (ballon == NULL) {
         fprintf(stderr, "Error loading ball image: %s\n", IMG_GetError());
-        return NULL;  
+        return NULL;
     }
 
     SDL_Rect ballPos;
     ballPos.x = 100;
     ballPos.y = 200;
 
-	SDL_BlitSurface(balll->background, NULL, (balll->fenetre), NULL);
-    SDL_BlitSurface(ballon, NULL, (balll->fenetre), &ballPos);
-    SDL_Flip(balll->fenetre);
+    double ballSpeed = 2.0;  // Adjust the speed of the ball
+    double ballAngle = M_PI / 4.0;  // Adjust the initial angle in radians
 
     while (*(balll->running)) {
-    	SDL_BlitSurface(balll->background, NULL, balll->fenetre, NULL);
-		SDL_BlitSurface(*(balll->pers), NULL, (balll->fenetre), (balll->DogPos));
+        SDL_BlitSurface(balll->background, NULL, balll->fenetre, NULL);
+        SDL_BlitSurface(*(balll->pers), NULL, balll->fenetre, (balll->DogPos));
         SDL_BlitSurface(ballon, NULL, balll->fenetre, &ballPos);
-        bonesPos(1, (balll->bones), *(balll->bonesSize), (balll->fenetre));
-        SDL_Flip((balll->fenetre));
-        ballPos.x += 1;
-    	ballPos.y += 1;
-    	SDL_Delay(10);
+        bonesPos(1, (balll->bones), *(balll->bonesSize), balll->fenetre);
+        SDL_Flip(balll->fenetre);
+
+        if(fabs(ballPos.x - (balll->DogPos)->x) < 5 && fabs(ballPos.y - (balll->DogPos)->y) < 5){
+        	*(balll->running) = 0;
+        	youLose(1, balll->fenetre);
+        }
+        // Update the ball position based on speed and angle
+        ballPos.x += (int)(ballSpeed * cos(ballAngle));
+        ballPos.y += (int)(ballSpeed * sin(ballAngle));
+
+        // Reverse direction if the ball hits the boundaries
+        if (ballPos.x < 0 || ballPos.x > 450) {
+            ballAngle = M_PI - ballAngle;
+        }
+        if (ballPos.y < 50 || ballPos.y > 400) {
+            ballAngle = -ballAngle;
+        }
+
+        SDL_Delay(1);
     }
+
     SDL_FreeSurface(ballon);
-    return NULL;
+    pthread_exit(NULL);
 }
 
 
