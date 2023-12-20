@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <SDL.h>
 #include <SDL_image.h>
-#include<unistd.h>
+#include <unistd.h>
 #include <stdbool.h>
 #include <pthread.h>
 
@@ -17,6 +17,18 @@ struct ThreadTime {
 	SDL_Surface *fenetre;
 };
 
+struct ThreadBall {
+	int* running;
+	SDL_Rect *DogPos;
+	SDL_Surface *fenetre;
+	SDL_Surface *background;
+	SDL_Surface **pers;
+	obstacle *bones;
+	size_t *bonesSize;
+};
+
+int final = 1;
+
 void youLose(int lvl, SDL_Surface *fenetre);
 void* timeCalc(void* data);
 int remove_element(obstacle *array, int index, size_t *array_length);
@@ -25,6 +37,7 @@ void youWin(int lvl, SDL_Surface *fenetre);
 void checkWin(int lvl, obstacle bones[], size_t *BoneSize, SDL_Surface *fenetre, int currentX, int currentY, int *running);
 void bonesPos(int lvl, obstacle bones[], size_t BoneSize, SDL_Surface *fenetre);
 obstacle* createObstacles(int lvl, int* sizeObs);
+void* BallMove(void* data);
 
 
 int main(int argc, char const *argv[]) {
@@ -57,9 +70,12 @@ int main(int argc, char const *argv[]) {
         perror("Error creating time calculation thread");
         exit(EXIT_FAILURE);
     }
+
+
+
     // FOR BOnes
 	obstacle bones[] = {{450, 50}, {450, 400}, {0, 400}, {0, 50}};
-	size_t bonesSize = sizeof(bones)/sizeof(bones[0]);
+	size_t bonesSize = 4;
     // For obstacles
 	int level = 1;
     int sizeObs;
@@ -76,6 +92,24 @@ int main(int argc, char const *argv[]) {
 	SDL_BlitSurface(pers, NULL, fenetre, &PersPos);
 	bonesPos(1, bones, bonesSize, fenetre);
 	SDL_Flip(fenetre);
+
+	// Create Ball
+    struct ThreadBall ball;
+    pthread_t ballThread;
+    ball.running = &running;
+    ball.DogPos = &PersPos;
+    ball.fenetre = fenetre;
+    ball.background = background;
+    ball.pers = &pers;
+    ball.bones = bones;
+    ball.bonesSize = &bonesSize;
+
+    if (pthread_create(&ballThread, NULL, BallMove, (void*)&ball) != 0) {
+        perror("Error creating ball Movement thread");
+        exit(EXIT_FAILURE);
+    }
+
+
 	//boucle "pseudo" infini
 	Uint32 startTime = SDL_GetTicks();
 	int moveSpeed = 25;  // Adjust the speed of movement
@@ -221,6 +255,40 @@ void youLose(int lvl, SDL_Surface *fenetre){
 		exit(0);
 }
 
+void* BallMove(void* data) {
+    struct ThreadBall* balll = (struct ThreadBall*)data;
+    SDL_Surface* ballon;
+    ballon =  IMG_Load("./img/ball.png");
+
+    if (ballon == NULL) {
+        fprintf(stderr, "Error loading ball image: %s\n", IMG_GetError());
+        return NULL;  
+    }
+
+    SDL_Rect ballPos;
+    ballPos.x = 100;
+    ballPos.y = 200;
+
+	SDL_BlitSurface(balll->background, NULL, (balll->fenetre), NULL);
+    SDL_BlitSurface(ballon, NULL, (balll->fenetre), &ballPos);
+    SDL_Flip(balll->fenetre);
+
+    while (*(balll->running)) {
+    	SDL_BlitSurface(balll->background, NULL, balll->fenetre, NULL);
+		SDL_BlitSurface(*(balll->pers), NULL, (balll->fenetre), (balll->DogPos));
+        SDL_BlitSurface(ballon, NULL, balll->fenetre, &ballPos);
+        bonesPos(1, (balll->bones), *(balll->bonesSize), (balll->fenetre));
+        SDL_Flip((balll->fenetre));
+        ballPos.x += 1;
+    	ballPos.y += 1;
+    	SDL_Delay(10);
+    }
+    SDL_FreeSurface(ballon);
+    return NULL;
+}
+
+
+
 void* timeCalc(void* data){
 	struct ThreadTime* Time = (struct ThreadTime*)data;
 	SDL_Surface *paw;
@@ -283,6 +351,7 @@ bool checkCollision(int newX, int newY, obstacle obstacles[], size_t obsSize) {
 }
 
 void youWin(int lvl, SDL_Surface *fenetre){
+	if(lvl = final){
 		SDL_Surface* background = IMG_Load("./img/win.png");
 		SDL_BlitSurface(background, NULL, fenetre, NULL);
 		SDL_Delay(200);
@@ -294,6 +363,8 @@ void youWin(int lvl, SDL_Surface *fenetre){
 			SDL_Delay(1);
 		};
 		exit(1);
+	}
+
 }
 void checkWin(int lvl, obstacle bones[], size_t *BoneSize, SDL_Surface *fenetre, int currentX, int currentY, int *running){
 	for (int i = 0; i < *BoneSize; i++){
