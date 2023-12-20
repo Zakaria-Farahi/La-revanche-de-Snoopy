@@ -24,6 +24,8 @@ bool checkCollision(int newX, int newY, obstacle obstacles[], size_t obsSize);
 void youWin(int lvl, SDL_Surface *fenetre);
 void checkWin(int lvl, obstacle bones[], size_t *BoneSize, SDL_Surface *fenetre, int currentX, int currentY, int *running);
 void bonesPos(int lvl, obstacle bones[], size_t BoneSize, SDL_Surface *fenetre);
+obstacle* createObstacles(int lvl, int* sizeObs);
+
 
 int main(int argc, char const *argv[]) {
 	if(SDL_Init(SDL_INIT_VIDEO)){
@@ -55,10 +57,14 @@ int main(int argc, char const *argv[]) {
         perror("Error creating time calculation thread");
         exit(EXIT_FAILURE);
     }
-	obstacle obstacles[4] = {{100, 150}, {350, 150}, {100, 300}, {350, 300}};
-	obstacle bones[] = {{450, 50}, {450, 400}, {0, 400}};
-	size_t obsSize = sizeof(obstacles)/sizeof(obstacles[0]);
+    // FOR BOnes
+	obstacle bones[] = {{450, 50}, {450, 400}, {0, 400}, {0, 50}};
 	size_t bonesSize = sizeof(bones)/sizeof(bones[0]);
+    // For obstacles
+	int level = 1;
+    int sizeObs;
+    obstacle* obstacles = createObstacles(level, &sizeObs);
+	size_t obsSize = sizeObs;
 
 
 	// Cree Personnage
@@ -309,4 +315,30 @@ void bonesPos(int lvl, obstacle bones[], size_t BoneSize, SDL_Surface *fenetre){
 		bonePos.y = bones[i].y;
 		SDL_BlitSurface(bone, NULL, fenetre, &bonePos);
 	}
+}
+
+obstacle* createObstacles(int lvl, int* sizeObs) {
+    obstacle* obstacles;
+
+    switch (lvl) {
+        case 1:
+            *sizeObs = 4;
+            obstacles = (obstacle*)malloc(sizeof(obstacle) * (*sizeObs));
+            obstacles[0].x = 100;
+            obstacles[0].y = 150;
+            obstacles[1].x = 350;
+            obstacles[1].y = 150;
+            obstacles[2].x = 100;
+            obstacles[2].y = 300;
+            obstacles[3].x = 350;
+            obstacles[3].y = 300;
+            break;
+        // Add more cases for different levels if needed
+        default:
+            *sizeObs = 0;
+            obstacles = NULL;
+            break;
+    }
+
+    return obstacles;
 }
